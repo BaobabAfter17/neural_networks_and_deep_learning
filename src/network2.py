@@ -179,7 +179,7 @@ class Network(object):
         # which in python3 is lazy and does not support len()
         # so convert them to list before use
         training_data = list(training_data)
-        if evaluation_data:
+        if evaluation_data is not None:
             evaluation_data = list(evaluation_data)
             n_data = len(evaluation_data)
         n = len(training_data)
