@@ -155,7 +155,7 @@ class Network(object):
         lmbda=0.0,
         evaluation_data=None,
         monitor_evaluation_cost=False,
-        monitor_evaluation_accuracy=False,
+        monitor_evaluation_accuracy=True,
         monitor_training_cost=False,
         monitor_training_accuracy=False,
     ):
@@ -185,7 +185,8 @@ class Network(object):
         n = len(training_data)
         evaluation_cost, evaluation_accuracy = [], []
         training_cost, training_accuracy = [], []
-        for j in range(epochs):
+        eta_multiplier = 1
+        for epoch in range(1000):
             random.shuffle(training_data)
             mini_batches = [
                 training_data[k : k + mini_batch_size]
@@ -193,7 +194,7 @@ class Network(object):
             ]
             for mini_batch in mini_batches:
                 self.update_mini_batch(mini_batch, eta, lmbda, n)
-            print(f"Epoch {j} training complete")
+            print(f"Epoch {epoch} training complete")
             if monitor_training_cost:
                 cost = self.total_cost(training_data, lmbda)
                 training_cost.append(cost)
@@ -210,6 +211,17 @@ class Network(object):
                 accuracy = self.accuracy(evaluation_data)
                 evaluation_accuracy.append(accuracy)
                 print(f"Accuracy on evaluation data: {accuracy} / {n_data}")
+                if (
+                    len(evaluation_accuracy) >= 10
+                    and evaluation_accuracy[-1] < evaluation_accuracy[-10]
+                ):
+                    eta /= 2.0
+                    evaluation_accuracy = []
+                    print(f"eta changed to {eta}")
+                    eta_multiplier *= 2
+                    if eta_multiplier > 128:
+                        break
+
         return (
             evaluation_cost,
             evaluation_accuracy,
