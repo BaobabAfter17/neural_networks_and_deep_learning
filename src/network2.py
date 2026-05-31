@@ -23,7 +23,7 @@ import numpy as np
 #### Define the quadric and cross-entropy cost functions
 
 
-class QuadraticCost(object):
+class QuadraticCost:
     @staticmethod
     def fn(a, y):
         """Return the cost associated with an ouput ``a`` and desired output
@@ -38,7 +38,7 @@ class QuadraticCost(object):
         return (a - y) * sigmoid_prime(z)
 
 
-class CrossEntropyCost(object):
+class CrossEntropyCost:
     @staticmethod
     def fn(a, y):
         """Return the cost associated with an output ``a`` and desired output
@@ -69,7 +69,7 @@ class CrossEntropyCost(object):
 
 
 #### Main network class
-class Network(object):
+class Network:
     def __init__(self, sizes, cost=CrossEntropyCost):
         """The list ``sizes`` contains the number of neurons in the respective
         layers of the network. For example, if the list was [2, 3, 1]

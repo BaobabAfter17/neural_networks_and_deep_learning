@@ -225,7 +225,7 @@ class ConvPoolLayer:
         self.params = [self.w, self.b]
 
     def forward(self, x, dropout=False):  # conv layers never apply dropout
-        x = x.reshape(self.image_shape)
+        x = x.reshape(-1, *self.image_shape)
         conv_out = F.conv2d(x, self.w)
         pooled = F.max_pool2d(conv_out, kernel_size=self.poolsize)
         return self.activation_fn(pooled + self.b.reshape(1, -1, 1, 1))
