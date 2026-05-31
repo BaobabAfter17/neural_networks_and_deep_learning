@@ -74,7 +74,7 @@ pip install -r requirements.txt
 
 **Part 1 — API consistency** (7 tests, instant): checks that every public symbol — activation functions, layer constructors, `Network.__init__`, `Network.SGD` — has the correct signature and attributes.
 
-**Part 2 — Convergence** (2 tests, ~20 s): loads full MNIST via `load_data_shared`, trains the canonical `[Conv(20) → FC(100) → Softmax(10)]` architecture for 3 epochs using the book's parameters (`mini_batch_size=10`, `eta=0.1`), and asserts test accuracy ≥ 95%. A fixed random seed makes results fully deterministic.
+**Part 2 — Convergence** (2 tests, ~7 s): loads full MNIST via `load_data_shared`, trains the canonical `[Conv(20) → FC(100) → Softmax(10)]` architecture for 1 epoch using the book's parameters (`mini_batch_size=10`, `eta=0.1`), and asserts test accuracy ≥ 90%. A fixed random seed makes results fully deterministic.
 
 ```bash
 python3 -m pytest tests/

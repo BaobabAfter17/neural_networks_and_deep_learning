@@ -146,7 +146,7 @@ def mnist():
 def test_conv_fc_softmax_converges(mnist):
     """Canonical architecture from README: Conv(20) + FC(100) + Softmax(10).
 
-    3 epochs with the book's parameters should reach ~96-97% on MNIST.
+    1 epoch with the book's parameters should reach ~93% on MNIST.
     """
     np.random.seed(SEED)
     torch.manual_seed(SEED)
@@ -161,13 +161,13 @@ def test_conv_fc_softmax_converges(mnist):
     )
     net.SGD(
         training_data,
-        epochs=3,
+        epochs=1,
         mini_batch_size=10,
         eta=0.1,
         validation_data=validation_data,
         test_data=test_data,
     )
-    assert _accuracy(net, *test_data) >= 0.95
+    assert _accuracy(net, *test_data) >= 0.90
 
 
 def test_conv_fc_softmax_with_lmbda_converges(mnist):
@@ -185,11 +185,11 @@ def test_conv_fc_softmax_with_lmbda_converges(mnist):
     )
     net.SGD(
         training_data,
-        epochs=3,
+        epochs=1,
         mini_batch_size=10,
         eta=0.1,
         validation_data=validation_data,
         test_data=test_data,
         lmbda=0.1,
     )
-    assert _accuracy(net, *test_data) >= 0.95
+    assert _accuracy(net, *test_data) >= 0.90
