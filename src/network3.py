@@ -64,6 +64,12 @@ class Network:
         self.layers = layers
         self.mini_batch_size = mini_batch_size
         self.params = [p for layer in layers for p in layer.params]
+        # Theano's __init__ also declared symbolic placeholders (T.matrix("x"),
+        # T.ivector("y")) and ran a set_inpt loop to chain layers into a static
+        # computation graph at construction time, storing self.output /
+        # self.output_dropout as the graph's tail for later compilation.
+        # PyTorch's dynamic graph makes all of that unnecessary: _forward() below
+        # simply calls layer.forward() in a loop at runtime with real tensors.
 
     def _forward(self, x, dropout=False):
         for layer in self.layers:
@@ -94,6 +100,13 @@ class Network:
         num_validation_batches = validation_x.shape[0] // mini_batch_size
         num_test_batches = test_x.shape[0] // mini_batch_size
 
+        # Theano compiled three separate functions before the loop:
+        # train_mb, validate_mb_accuracy, test_mb_accuracy — each a GPU-compiled
+        # C function that received a batch index and used `givens` to substitute
+        # the symbolic self.x/self.y with the corresponding GPU-resident slice.
+        # PyTorch needs no compile step: we slice plain tensors in Python and call
+        # _forward/_accuracy directly each iteration.
+
         best_validation_accuracy = 0.0
         test_accuracy = 0.0
         for epoch in range(epochs):
@@ -102,6 +115,8 @@ class Network:
                 if iteration % 1000 == 0:
                     print("Training mini-batch number {0}".format(iteration))
 
+                # Theano passed a batch index to the compiled function; it sliced
+                # inside the C code on the GPU. Here we slice in Python instead.
                 xb = training_x[
                     mb_idx * mini_batch_size : (mb_idx + 1) * mini_batch_size
                 ]
@@ -109,7 +124,10 @@ class Network:
                     mb_idx * mini_batch_size : (mb_idx + 1) * mini_batch_size
                 ]
 
-                # Zero gradients
+                # Theano gradients were symbolic expressions computed once at
+                # compile time; the compiled function produced fresh values each
+                # call with no accumulation. PyTorch accumulates into p.grad, so
+                # we must zero before each backward pass.
                 for p in self.params:
                     if p.grad is not None:
                         p.grad.detach_()
@@ -121,7 +139,8 @@ class Network:
                 # Cost: negative log-likelihood from the last layer
                 cost = self.layers[-1].cost_from_output(out, yb)
 
-                # L2 regularization
+                # Theano folded L2 into the symbolic cost expression once before
+                # compilation. Here it is recomputed each mini-batch at runtime.
                 if lmbda != 0.0:
                     l2 = sum(
                         (layer.w**2).sum()
@@ -130,7 +149,9 @@ class Network:
                     )
                     cost = cost + 0.5 * lmbda * l2 / num_training_batches
 
-                # Backward pass and SGD update
+                # Theano baked parameter updates into the compiled function as a
+                # list of (param, param - eta*grad) substitution rules. Here
+                # backward() populates p.grad and we apply the update manually.
                 cost.backward()
                 with torch.no_grad():
                     for p in self.params:
@@ -212,18 +233,22 @@ class ConvPoolLayer:
         n_out = filter_shape[0] * np.prod(filter_shape[2:]) // np.prod(poolsize)
         self.w = torch.nn.Parameter(
             torch.tensor(
-                np.random.normal(0, np.sqrt(1.0 / n_out), size=filter_shape),
+                np.random.normal(loc=0, scale=np.sqrt(1.0 / n_out), size=filter_shape),
                 dtype=torch.float32,
             )
         )
         self.b = torch.nn.Parameter(
             torch.tensor(
-                np.random.normal(0, 1.0, size=(filter_shape[0],)),
+                np.random.normal(loc=0, scale=1.0, size=(filter_shape[0],)),
                 dtype=torch.float32,
             )
         )
         self.params = [self.w, self.b]
 
+    # No set_inpt or accuracy methods unlike the Theano original: Theano required
+    # an explicit graph-build phase (set_inpt wired symbolic tensors; accuracy returned
+    # a symbolic expression). PyTorch's eager execution makes both unnecessary —
+    # forward() runs directly on real tensors, and accuracy lives in Network.evaluate.
     def forward(self, x, dropout=False):  # conv layers never apply dropout
         x = x.reshape(-1, *self.image_shape)
         conv_out = F.conv2d(x, self.w)
@@ -237,16 +262,18 @@ class FullyConnectedLayer:
         self.n_out = n_out
         self.activation_fn = activation_fn
         self.p_dropout = p_dropout
-
+        # Initialize weights and biases
         self.w = torch.nn.Parameter(
             torch.tensor(
-                np.random.normal(0.0, np.sqrt(1.0 / n_out), size=(n_in, n_out)),
+                np.random.normal(
+                    loc=0.0, scale=np.sqrt(1.0 / n_out), size=(n_in, n_out)
+                ),
                 dtype=torch.float32,
             )
         )
         self.b = torch.nn.Parameter(
             torch.tensor(
-                np.random.normal(0.0, 1.0, size=(n_out,)),
+                np.random.normal(loc=0.0, scale=1.0, size=(n_out,)),
                 dtype=torch.float32,
             )
         )
