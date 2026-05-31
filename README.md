@@ -77,7 +77,7 @@ pip install -r requirements.txt
 **Part 2 — Convergence** (2 tests, ~20 s): loads full MNIST via `load_data_shared`, trains the canonical `[Conv(20) → FC(100) → Softmax(10)]` architecture for 3 epochs using the book's parameters (`mini_batch_size=10`, `eta=0.1`), and asserts test accuracy ≥ 95%. A fixed random seed makes results fully deterministic.
 
 ```bash
-pytest tests/
+python3 -m pytest tests/
 ```
 
 ## Linting
