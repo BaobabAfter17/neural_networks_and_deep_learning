@@ -68,6 +68,20 @@ net.SGD(training_data, 60, 10, 0.1, validation_data=validation_data, test_data=t
 pip install -r requirements.txt
 ```
 
+## Tests
+
+End-to-end tests cover all three networks using small synthetic data (no MNIST required). Each test runs one SGD epoch and verifies it completes without error.
+
+```bash
+python3 -m pytest tests/ -v 2>&1
+```
+
+| File | What it covers |
+|---|---|
+| `tests/test_network_e2e.py` | SGD with and without test data |
+| `tests/test_network2_e2e.py` | CrossEntropy/Quadratic cost, L2 regularization, monitoring flags, weight initializers, save/load |
+| `tests/test_network3_e2e.py` | All layer combinations: `[FC, Softmax]`, `[Conv, Softmax]`, `[Conv, FC, Softmax]`, `[Conv, Conv, FC, Softmax]`, dropout, ReLU, lmbda |
+
 ## Linting
 
 ```bash
