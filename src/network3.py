@@ -55,11 +55,14 @@ def load_data_shared(filename="../data/mnist.pkl.gz"):
 
 #### Main class used to construct and train networks
 class Network:
-    def __init__(self, layers, mini_batch_size):
+    def __init__(self, layers, mini_batch_size, use_gpu=False):
         """Takes a list of `layers`, describing the network architecture, and
         a value for the `mini_batch_size` to be used during training
         by stochastic gradient descent.
 
+        Set `use_gpu=True` to train on a CUDA GPU if one is available.
+        The original Theano code enabled GPU via the THEANO_FLAGS environment
+        variable; here it is an explicit constructor argument instead.
         """
         self.layers = layers
         self.mini_batch_size = mini_batch_size
@@ -70,6 +73,12 @@ class Network:
         # self.output_dropout as the graph's tail for later compilation.
         # PyTorch's dynamic graph makes all of that unnecessary: _forward() below
         # simply calls layer.forward() in a loop at runtime with real tensors.
+        self.device = torch.device(
+            "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
+        )
+        for p in self.params:
+            p.data = p.data.to(self.device)
+        print("Running on {0}".format(self.device))
 
     def _forward(self, x, dropout=False):
         for layer in self.layers:
@@ -95,6 +104,15 @@ class Network:
         training_x, training_y = training_data
         validation_x, validation_y = validation_data
         test_x, test_y = test_data
+
+        # Move all data to the same device as the parameters. On GPU this keeps
+        # everything GPU-resident so slices stay on device with no per-batch transfer.
+        training_x = training_x.to(self.device)
+        training_y = training_y.to(self.device)
+        validation_x = validation_x.to(self.device)
+        validation_y = validation_y.to(self.device)
+        test_x = test_x.to(self.device)
+        test_y = test_y.to(self.device)
 
         num_training_batches = training_x.shape[0] // mini_batch_size
         num_validation_batches = validation_x.shape[0] // mini_batch_size
