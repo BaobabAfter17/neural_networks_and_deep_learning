@@ -70,17 +70,15 @@ pip install -r requirements.txt
 
 ## Tests
 
-End-to-end tests cover all three networks using small synthetic data (no MNIST required). Each test runs one SGD epoch and verifies it completes without error.
+`tests/test_network3_e2e.py` verifies that modifications to `network3.py` preserve the original behavior across two dimensions:
+
+**Part 1 — API consistency** (7 tests, instant): checks that every public symbol — activation functions, layer constructors, `Network.__init__`, `Network.SGD` — has the correct signature and attributes.
+
+**Part 2 — Convergence** (2 tests, ~20 s): loads full MNIST via `load_data_shared`, trains the canonical `[Conv(20) → FC(100) → Softmax(10)]` architecture for 3 epochs using the book's parameters (`mini_batch_size=10`, `eta=0.1`), and asserts test accuracy ≥ 95%. A fixed random seed makes results fully deterministic.
 
 ```bash
-python3 -m pytest tests/ -v 2>&1
+pytest tests/
 ```
-
-| File | What it covers |
-|---|---|
-| `tests/test_network_e2e.py` | SGD with and without test data |
-| `tests/test_network2_e2e.py` | CrossEntropy/Quadratic cost, L2 regularization, monitoring flags, weight initializers, save/load |
-| `tests/test_network3_e2e.py` | All layer combinations: `[FC, Softmax]`, `[Conv, Softmax]`, `[Conv, FC, Softmax]`, `[Conv, Conv, FC, Softmax]`, dropout, ReLU, lmbda |
 
 ## Linting
 
